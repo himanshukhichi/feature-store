@@ -24,7 +24,7 @@ public class OfflineStoreService {
     public OfflineStoreService(FeatureValueRepository repository, ObjectMapper objectMapper, MeterRegistry meterRegistry) {
         this.repository = repository;
         this.objectMapper = objectMapper;
-        this.offlineWriteTimer = Timer.builder("offline_write_latency")
+        this.offlineWriteTimer = Timer.builder("offline_write_latency_ms")
                 .description("Latency of PostgreSQL feature history writes")
                 .tag("unit", "milliseconds")
                 .publishPercentileHistogram()
@@ -35,15 +35,19 @@ public class OfflineStoreService {
     public void write(FeatureIngestedEvent event) {
         offlineWriteTimer.record(() -> {
             for (Map.Entry<String, Object> entry : event.features().entrySet()) {
-                repository.save(new FeatureValueEntity(
-                        event.entityId(),
-                        event.featureGroup(),
-                        entry.getKey(),
-                        writeJson(entry.getValue()),
-                        event.timestamp()
-                ));
+                writeValue(event.entityId(), event.featureGroup(), entry.getKey(), entry.getValue(), event.timestamp());
             }
         });
+    }
+
+    @Transactional
+    public int writeDirect(String entityId, String featureGroup, Map<String, Object> features, Instant eventTime) {
+        int written = 0;
+        for (Map.Entry<String, Object> entry : features.entrySet()) {
+            writeValue(entityId, featureGroup, entry.getKey(), entry.getValue(), eventTime);
+            written++;
+        }
+        return written;
     }
 
     @Transactional(readOnly = true)
@@ -53,6 +57,26 @@ public class OfflineStoreService {
             values.put(value.getFeatureName(), readJson(value.getValueJson()));
         }
         return values;
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<FeatureValueEntity> valuesForGroup(String featureGroup) {
+        return repository.findByFeatureGroup(featureGroup);
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<FeatureValueEntity> allValues() {
+        return repository.findAll();
+    }
+
+    private void writeValue(String entityId, String featureGroup, String featureName, Object value, Instant eventTime) {
+        repository.save(new FeatureValueEntity(
+                entityId,
+                featureGroup,
+                featureName,
+                writeJson(value),
+                eventTime
+        ));
     }
 
     private String writeJson(Object value) {

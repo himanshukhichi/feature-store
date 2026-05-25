@@ -10,15 +10,15 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 
 @Entity
-@Table(name = "feature_groups")
-public class FeatureGroupEntity {
+@Table(name = "feature_group_versions")
+public class FeatureGroupVersionEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
-    private String name;
+    @Column(name = "feature_group_name", nullable = false)
+    private String featureGroupName;
 
     @Column(name = "entity_type", nullable = false)
     private String entityType;
@@ -35,28 +35,20 @@ public class FeatureGroupEntity {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
-
-    protected FeatureGroupEntity() {
+    protected FeatureGroupVersionEntity() {
     }
 
-    public FeatureGroupEntity(String name, String entityType, String schemaJson, long freshnessTtlSeconds) {
-        this.name = name;
+    public FeatureGroupVersionEntity(String featureGroupName, String entityType, String schemaJson, long freshnessTtlSeconds, int version) {
+        this.featureGroupName = featureGroupName;
         this.entityType = entityType;
         this.schemaJson = schemaJson;
         this.freshnessTtlSeconds = freshnessTtlSeconds;
-        this.version = 1;
+        this.version = version;
         this.createdAt = Instant.now();
-        this.updatedAt = this.createdAt;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
+    public String getFeatureGroupName() {
+        return featureGroupName;
     }
 
     public String getEntityType() {
@@ -75,18 +67,7 @@ public class FeatureGroupEntity {
         return version;
     }
 
-    public void updateSchema(String schemaJson, long freshnessTtlSeconds, int version) {
-        this.schemaJson = schemaJson;
-        this.freshnessTtlSeconds = freshnessTtlSeconds;
-        this.version = version;
-        this.updatedAt = Instant.now();
-    }
-
     public Instant getCreatedAt() {
         return createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
     }
 }

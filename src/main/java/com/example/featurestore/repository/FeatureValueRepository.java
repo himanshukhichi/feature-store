@@ -30,4 +30,6 @@ public interface FeatureValueRepository extends JpaRepository<FeatureValueEntity
             @Param("entityId") String entityId,
             @Param("asOf") Instant asOf
     );
+
+    List<FeatureValueEntity> findByFeatureGroup(String featureGroup);
 }
